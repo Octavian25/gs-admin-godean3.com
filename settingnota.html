@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Faktur</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" />
+  <script
+  src="https://code.jquery.com/jquery-3.5.1.min.js"
+  integrity="sha256-9/aliU8dGd2tb6OSsuzixeV4y/faTqgFtohetphbbj0="
+  crossorigin="anonymous"
+></script>
+<script
+  src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"
+  integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU="
+  crossorigin="anonymous"
+></script>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@9.17.2/dist/sweetalert2.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.3.0/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@9.17.2/dist/sweetalert2.all.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.8.0/JsBarcode.all.js"></script>
+  <!-- <script src="<?php echo base_url('assets/plugins/sweetalert2/sweetalert2.min.js') ?>"></script> -->
+</head>
+
+<body style="font-size: 10px">
+  <img id='itf' style="display: none" /></div></div>
+  <div class="row col-lg-10">
+    <div id="container" style="
+          width: 210mm;
+          height: 107mm;
+          border: 1px solid black;
+          background-image: url('nota/nota_satelit.jpeg');
+          background-size: contain;
+          background-repeat: no-repeat;
+        "></div>
+    <!-- <div
+        id="container"
+        style="
+          width: 160mm;
+          height: 220mm;
+          border: 1px solid black;
+          background-image: url('faktur_sahabat.jpg');
+          background-size: cover;
+          background-repeat: no-repeat;
+        "
+      ></div> -->
+    <div class="col-lg-2">
+      <ul class="list-group" id="list_component" style="
+            margin-left: 20px;
+            max-height: 340px;
+            width: 400px;
+            overflow: scroll;
+            -webkit-overflow-scrolling: touch;
+          "></ul>
+      <h6 style="margin-left: 20px; width: 200px">
+        **Klik Tulisan Untuk Edit
+      </h6>
+    </div>
+    <div class="col-lg-12">
+      <div id="header" class="p-3">
+        <div class="row">
+          <div class="col-lg-6">
+            <div class="form-group">
+              <label for="">Nama</label>
+              <input type="text" class="form-control" id="nama_text" name="nama_text" />
+            </div>
+          </div>
+          <div class="col-lg-6">
+            <label for="">Jenis Component</label>
+            <select id="jenis_text" name="jenis_text" class="form-control">
+              <option value="text" selected>Text</option>
+              <option value="gambar">Gambar</option>
+              <option value="barcode">Barcode</option>
+            </select>
+          </div>
+          <div class="col-lg-4">
+            <div class="form-group">
+              <label for="">Width</label>
+              <input type="number" class="form-control" id="width" name="width" />
+            </div>
+          </div>
+          <div class="col-lg-4">
+            <div class="form-group">
+              <label for="">Rotate</label>
+              <input type="number" class="form-control" id="rotate" name="rotate" value="0" />
+            </div>
+          </div>
+          <div class="col-lg-4">
+            <div class="form-group">
+              <label for="">Height</label>
+              <input type="number" class="form-control" id="height" name="height" />
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-12">
+          <button id="kembali" class="btn btn-warning mt-3 mb-3 mr-3">
+            <i class="fa fa-chevron-left mr-2"></i>
+            Kembali
+          </button>
+          <button id="tambah_text" class="btn btn-primary mt-3 mb-3">
+            Tambah Text
+          </button>
+
+          <button id="simpan" name="simpan" class="btn btn-success mt-3 mb-3 ml-3">
+            Simpan Data
+          </button>
+          <button id="print1" name="print" class="btn btn-primary mt-3 mb-3 ml-3">
+            Lihat Contoh Print
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+
+<script>
+  let base_url = "http://192.162.1.22:3001/api/v1/"
+  $(document).ready(function () {
+    $.ajax({
+        type: "GET",
+        url: base_url + 'nota/get/all',
+        headers: {"x-auth-token": localStorage.getItem('token'), "Content-Type": "application/json"},
+        success: function (data,textStatus, xhr) {
+          // console.log(data);
+          localStorage.setItem('list_component',JSON.stringify(data))
+        }
+      })
+    showData();
+    $("#kembali").click(function () {
+      let base_url = JSON.parse(localStorage.getItem('base_url'));
+      window.location.replace(base_url + 'dashboard')
+    })
+  });
+</script>
+<script>
+  $("#tambah_text").click(function () {
+    let data = $("#nama_text").val();
+    let jenis = $("#jenis_text").val();
+    let height = $("#height").val();
+    let width = $("#width").val();
+    let rotate = $("#rotate").val();
+    let hasil = JSON.parse(localStorage.getItem("list_component")) || [];
+    let kirim = {
+      isi: data === 'Qty' || data === 'qty' ? '1' : data,
+      jenis: jenis,
+      name: data,
+      position_y: 0,
+      position_x: 0,
+      width: width,
+      height: height,
+      rotate: rotate,
+    };
+    // console.log(kirim);
+    // return false;
+    hasil.push(kirim);
+    localStorage.setItem("list_component", JSON.stringify(hasil));
+    $("#nama_text").val("");
+    showData();
+  });
+</script>
+<script>
+  function deleteLocal(index) {
+    let data = JSON.parse(localStorage.getItem("list_component")) || [];
+    data.splice(index, 1);
+    localStorage.setItem("list_component", JSON.stringify(data));
+    showData();
+  }
+</script>
+<script>
+  function setData(index) {
+    let data = JSON.parse(localStorage.getItem("list_component")) || [];
+    $("#nama_text").val(data[index].name);
+    $("#width").val(data[index].width);
+    $("#rotate").val(data[index].rotate);
+    $("#height").val(data[index].height);
+    $("#jenis_text").val(data[index].jenis);
+  }
+</script>
+<script>
+  function showData() {
+    let data = JSON.parse(localStorage.getItem("list_component"));
+
+    $("#container").html("");
+    $("#list_component").html("");
+    if(data!==null){
+      data.map((list, index) => {
+      let data = {
+        nama: list.nama,
+        width: list.width,
+        rotate: list.rotate,
+        height: list.height,
+      };
+      $("#container")
+        .append(`<div id="draggable${index}" onClick="setData(${data})" name="${list.name}" style="width: ${list.width}px;height:${list.height}px ;transform: rotate(${list.rotate}deg);position:absolute; background-color: red; cursor: move;left:${list.position_x}px;top:${list.position_y}px">
+        <div >
+            ${list.isi}
+        </div>
+      </div>`);
+      $("#list_component").append(
+          `<li class="list-group-item" "><i class="fa fa-close mr-2" onClick="deleteLocal(${index})" ></i><button class="btn btn-default btn-sm" onClick="setData(${index})">${list.isi}</button></li>`
+      );
+      var jumlah = $("#container div").length / 2;
+      for (let i = 0; i < jumlah; i++) {
+        $(function () {
+          $(`#draggable${i}`).draggable({
+            containment: `#contain${i}`,
+            scroll: false,
+            drag: function () {
+              var $this = $(this);
+              var thisPos = $this.position();
+              var parentPos = $this.parent().position();
+
+              var x = thisPos.left;
+              var y = thisPos.top;
+              // var x = thisPos.left - parentPos.left;
+              // var y = thisPos.top - parentPos.top;
+              let nama = $(this).attr("name");
+              let data = JSON.parse(localStorage.getItem("list_component"));
+              let hasil = data.findIndex((list) => list.name == nama);
+              data[hasil].position_y = y;
+              data[hasil].position_x = x;
+              // console.log(parentPos.left);
+              // console.log(thisPos.left);
+              localStorage.setItem("list_component", JSON.stringify(data));
+              localStorage.setItem(nama + "-x", `${x}`);
+              localStorage.setItem(nama + "-y", `${y}`);
+            },
+          });
+        });
+      }
+    });
+    }
+   
+  }
+</script>
+<script>
+  function getDataUrl(img) {
+    // Create canvas
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    // Set width and height
+    canvas.width = img.width;
+    canvas.height = img.height;
+    // Draw the image
+    ctx.drawImage(img, 0, 0);
+    return canvas.toDataURL("image/jpeg");
+  }
+</script>
+<script>
+  $(document).ready(function () {
+    
+    $("#simpan").click(function () {
+      let data_post = JSON.parse(localStorage.getItem("list_component")) || [];
+      // let hasil = []
+      // data_post.map((list, index) => {
+      //   let row = {
+      //     name : list.name,
+      //     jenis : list.jenis,
+      //     position_x : list.position_x,
+      //     position_y : list.position_y,
+      //     width : list.width,
+      //     height : list.height,
+      //     rotate : list.rotate,
+      //   }
+      //   hasil.push(row);
+      // });
+
+      let row = {
+        nota : JSON.parse(localStorage.getItem("list_component")) || [],
+      };
+      var hasil = JSON.stringify(row)
+
+      $.ajax({
+        type: "POST",
+        url: base_url + 'nota/add',
+        headers: {"x-auth-token": localStorage.getItem('token'), "Content-Type": "application/json"},
+        data: hasil,
+        success: function (data,textStatus, xhr) {
+          // console.log(hasil);
+          if (xhr.status==200) {
+            Swal.fire({
+              title: "BERHASIL",
+              text: "Faktur Sudah Terupdate",
+              icon: 'success',
+            })
+          } else {
+            Swal.fire({
+              title: "GAGAL",
+              text: "Faktur Gagal Terupdate",
+              icon: 'error',
+            })
+          }
+        }
+      })
+    });
+  });
+</script>
+<script>
+  $(document).ready(function () {
+    // console.log(JSON.parse(localStorage.getItem('islogin')));
+    let base_url = JSON.parse(localStorage.getItem('base_url'));
+    let tgl = ("0" + new Date().getDate()).slice(-2)
+    let mont = ("0" + (new Date().getMonth() + 1)).slice(-2)
+    let year = new Date().getFullYear()
+
+    if(year+'-'+mont+'-'+tgl != localStorage.getItem('islogin')){
+      window.location.replace(base_url)
+    }
+    // console.log(year+'-'+mont+'-'+tgl);
+    $("#print1").click(function () {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      var img = new Image();
+
+      // var paragraph="Apple's iPhone 7 is officially upon us. After a week of pre-orders, the latest in the iPhone lineup officially launches today.\n\nEager Apple fans will be lining up out the door at Apple and carrier stores around the country to grab up the iPhone 7 and iPhone 7 Plus, while Android owners look on bemusedly.\n\nDuring the Apple Event last week, the tech giant revealed a number of big, positive changes coming to the iPhone 7. It's thinner. The camera is better. And, perhaps best of all, the iPhone 7 is finally water resistant.\n\nStill, while there may be plenty to like about the new iPhone, there's plenty more that's left us disappointed. Enough, at least, to make smartphone shoppers consider waiting until 2017, when Apple is reportedly going to let loose on all cylinders with an all-glass chassis design.";
+
+      // var lines =doc.splitTextToSize(paragraph, 50);
+      // doc.text(40,20,lines);
+      // doc.save('Generated.pdf');
+
+      doc.setFontSize(8);
+      let data = JSON.parse(localStorage.getItem("list_component"));
+      // let data = JSON.parse(localStorage.getItem("coba_print"));
+      data.map((list, index) => {
+        // hasil.data.map((list) => {
+          console.log(list.position_x);
+          console.log(list.isi);
+          if (list.jenis == "text") {
+              doc.text(
+                list.position_x * 0.2645833333,
+                (parseFloat(list.position_y) + 15) * 0.2645833333,
+                doc.splitTextToSize(list.isi, list.width * 0.2645833333),
+                null,
+                parseInt(list.rotate * -1)
+              );
+            } else if(list.jenis == "gambar") {
+              if (list.rotate > 0) {
+                var http = new XMLHttpRequest();
+              
+               if(http.status == 404){
+                   img.src = "image-not-found.png"
+                       doc.addImage(
+                  img,
+                  "jpg",
+                  list.position_x * 0.2645833333,
+                  parseFloat(list.position_y) * 0.2645833333 -
+                    list.width * 0.2645833333,
+                  list.width * 0.2645833333,
+                  list.height * 0.2645833333,
+                  "",
+                  "",
+                  parseInt(list.rotate * -1)
+                );
+               } else {
+                img.src =  "image-not-found.png"
+                       doc.addImage(
+                  img,
+                  "jpg",
+                  list.position_x * 0.2645833333,
+                  parseFloat(list.position_y) * 0.2645833333 -
+                    list.width * 0.2645833333,
+                  list.width * 0.2645833333,
+                  list.height * 0.2645833333,
+                  "",
+                  "",
+                  parseInt(list.rotate * -1)
+                );
+               }
+              } else {
+               
+                notFound = "image-not-found.png"
+                doc.addImage(
+                   notFound ,
+                  "jpg",
+                  list.position_x * 0.2645833333,
+                  parseFloat(list.position_y) * 0.2645833333,
+                  list.width * 0.2645833333,
+                  list.height * 0.2645833333
+                );
+              
+              }
+            } else {
+               if(list.rotate > 0){
+                JsBarcode("#itf", list.isi, {format: "code128"});
+                 const img = document.querySelector('img#itf');
+                doc.addImage(
+                  img.src,
+                  "JPEG",
+                  list.position_x * 0.2645833333,
+                  parseFloat(list.position_y) * 0.2645833333 -
+                    list.width * 0.2645833333 + 25,
+                  list.width * 0.2645833333,
+                  list.height * 0.2645833333,
+                  "",
+                  "",
+                  parseInt(list.rotate * -1)
+                );
+                // doc.addImage(img.src, 'JPEG', list.position_x * 0.2645833333,
+                //   parseFloat(list.position_y) * 0.2645833333,
+                //   list.width * 0.2645833333 - 15,
+                //   list.height * 0.2645833333,
+                //  )
+               } else {
+                JsBarcode("#itf", list.isi, {format: "code128"});
+                const img = document.querySelector('img#itf');
+                doc.addImage(img.src, 'JPEG', list.position_x * 0.2645833333,
+                  parseFloat(list.position_y) * 0.2645833333,
+                  list.width * 0.2645833333 - 30,
+                  list.height * 0.2645833333,
+                 )
+               }
+            }
+      });
+      // if (index < data.length - 1) {
+      //   doc.addPage();
+      // }
+      // });
+      // doc.fromHTML($("#container"), 1,1)
+      doc.autoPrint();
+      doc.setProperties({
+        title: "SETING FAKTUR",
+      });
+      // var string = doc.output("datauristring");
+      // var embed = "<embed width='100%' height='100%' src='" + string + "'/>";
+      // var x = window.open();
+
+      var string = doc.output("datauristring");
+      // var embed = "<embed width='100%' height='100%' src='" + string + "'/>";
+      var x = window.open();
+      x.document.open();
+      x.document.write(
+        "<html><head><title>SETTING FAKTUR</title></head><body style='margin:0 !important'><embed width='100%' height='100%'  src=" +
+        string +
+        "></embed></body></html>"
+      );
+      // x.document.open();
+      // x.document.write(embed);
+      // setInterval(() => {
+      //   x.close();
+      // }, 1000);
+      // window.location.close();
+      // doc.output("datauri");
+      // doc.save("TestingV1.pdf");
+    });
+  });
+</script>
+
+</html>
